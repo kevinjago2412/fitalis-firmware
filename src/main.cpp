@@ -22,7 +22,7 @@
  *
  * FIRST RUN
  *   1. Edit include/config.h: set STA_SSID / STA_PASSWORD (or switch to
- *      WIFI_MODE_AP for a standalone hotspot).
+ *      MODE_AP for a standalone hotspot).
  *   2. Flash, open Serial Monitor at 115200.
  *   3. The IP address is printed. Open it in a phone browser.
  */
@@ -48,7 +48,7 @@ static void printBanner() {
   Serial.printf( "  Buzzer    : GPIO %d\n", PIN_BUZZER);
   Serial.printf( "  Button    : GPIO %d\n", PIN_BUTTON_ACK);
   Serial.printf( "  WiFi mode : %s\n",
-                 (WIFI_MODE == WIFI_MODE_AP) ? "AP (standalone hotspot)" : "STATION (join router)");
+                 (WIFI_MODE == MODE_AP) ? "AP (standalone hotspot)" : "STATION (join router)");
   Serial.println(F("----------------------------------------------"));
 }
 
@@ -72,7 +72,7 @@ void setup() {
   //    the dashboard.
   bool timeOk = webConnectAndSyncTime();
 
-  if (!timeOk && WIFI_MODE == WIFI_MODE_STATION) {
+  if (!timeOk && WIFI_MODE == MODE_STATION) {
     LOGLN("[main] running without synced clock — set time from the dashboard");
   }
 

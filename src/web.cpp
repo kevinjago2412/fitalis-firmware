@@ -580,8 +580,26 @@ static void handleAddSchedule() {
   sendJson(201, out);
 }
 
+// Extract a numeric index from paths like /api/schedules/2
+// Written to work on every ESP32 core version (UriBraces is only in newer ones).
+static int pathIndex() {
+  String uri = server.uri();          // e.g. "/api/schedules/2"
+  int slash = uri.lastIndexOf('/');
+  if (slash < 0 || slash >= (int)uri.length() - 1) return -1;
+  String tail = uri.substring(slash + 1);
+  if (tail.length() == 0) return -1;
+  for (size_t i = 0; i < tail.length(); i++) {
+    if (!isdigit((unsigned char)tail[i])) return -1;
+  }
+  return tail.toInt();
+}
+
+static bool isSchedulePath() {
+  return server.uri().startsWith("/api/schedules/");
+}
+
 static void handleUpdateSchedule() {
-  int idx = server.pathArg("index").toInt();
+  int idx = pathIndex();
   String body = server.arg("plain");
 
   if (idx < 0 || idx >= scheduleCount()) { sendErr(404, "schedule not found"); return; }
@@ -608,7 +626,7 @@ static void handleUpdateSchedule() {
 }
 
 static void handleDeleteSchedule() {
-  int idx = server.pathArg("index").toInt();
+  int idx = pathIndex();
   if (!scheduleDelete(idx)) { sendErr(404, "schedule not found"); return; }
   sendOk("schedule deleted");
 }
@@ -660,7 +678,7 @@ static void handleNotFound() {
 // ===========================================================================
 
 bool webIsConnected() {
-#if WIFI_MODE == WIFI_MODE_STATION
+#if WIFI_MODE == MODE_STATION
   return WiFi.status() == WL_CONNECTED;
 #else
   return true;   // AP is always "up"
@@ -668,7 +686,7 @@ bool webIsConnected() {
 }
 
 String webLocalIp() {
-#if WIFI_MODE == WIFI_MODE_STATION
+#if WIFI_MODE == MODE_STATION
   if (WiFi.status() == WL_CONNECTED) return WiFi.localIP().toString();
   return String("0.0.0.0");
 #else
@@ -677,7 +695,7 @@ String webLocalIp() {
 }
 
 static void startAccessPoint() {
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP);   // WIFI_AP comes from the core's WiFiType.h
   bool ok = WiFi.softAP(AP_SSID, AP_PASSWORD[0] ? AP_PASSWORD : nullptr);
   LOGF("[wifi] AP %s -> %s\n", ok ? "started" : "FAILED",
        WiFi.softAPIP().toString().c_str());
@@ -703,7 +721,7 @@ static bool connectStation() {
 }
 
 bool webConnectAndSyncTime() {
-#if WIFI_MODE == WIFI_MODE_AP
+#if WIFI_MODE == MODE_AP
   startAccessPoint();
   // No internet in AP mode — the dashboard sets the clock instead.
   return false;
@@ -743,19 +761,27 @@ void webInit() {
   server.on("/api/schedules", HTTP_GET, handleGetSchedules);
   server.on("/api/schedules", HTTP_POST, handleAddSchedule);
 
-  // Path parameters (<index>) need the newer ESP32 core URI matcher.
-  server.on(UriBraces("/api/schedules/{}"), HTTP_PUT, handleUpdateSchedule);
-  server.on(UriBraces("/api/schedules/{}"), HTTP_DELETE, handleDeleteSchedule);
+  // Indexed routes are matched manually so they work on any core version.
+  server.on("/api/schedules/reset-taken", HTTP_POST, handleResetTaken);
 
   server.on("/api/alarm/ack",     HTTP_POST, handleAlarmAck);
   server.on("/api/alarm/dismiss", HTTP_POST, handleAlarmDismiss);
   server.on("/api/alarm/snooze",  HTTP_POST, handleAlarmSnooze);
 
-  server.on("/api/test/alarm",             HTTP_POST, handleTestAlarm);
-  server.on("/api/schedules/reset-taken",  HTTP_POST, handleResetTaken);
-  server.on("/api/time",                   HTTP_POST, handleSetTime);
+  server.on("/api/test/alarm", HTTP_POST, handleTestAlarm);
+  server.on("/api/time",       HTTP_POST, handleSetTime);
 
-  server.onNotFound(handleNotFound);
+  server.onNotFound([]() {
+    // Fall through: indexed schedule routes and everything else land here.
+    if (isSchedulePath()) {
+      if (server.method() == HTTP_PUT)    { handleUpdateSchedule(); return; }
+      if (server.method() == HTTP_DELETE) { handleDeleteSchedule(); return; }
+      sendErr(405, "method not allowed");
+      return;
+    }
+    handleNotFound();
+  });
+
   server.begin();
   LOGF("[web] dashboard on http://%s/\n", webLocalIp().c_str());
 }
@@ -763,7 +789,7 @@ void webInit() {
 void webLoop() {
   server.handleClient();
 
-#if WIFI_MODE == WIFI_MODE_STATION
+#if WIFI_MODE == MODE_STATION
   // Reconnect in the background if the link drops. The reminder keeps
   // running from flash with no network at all.
   static uint32_t lastAttempt = 0;

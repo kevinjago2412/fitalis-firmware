@@ -80,7 +80,7 @@ Tombol pakai `INPUT_PULLUP`, jadi tidak perlu resistor tambahan.
 Kalau nggak ada WiFi sama sekali, ubah di `config.h`:
 
 ```c
-#define WIFI_MODE   WIFI_MODE_AP
+#define WIFI_MODE   MODE_AP
 ```
 
 ESP32 jadi hotspot sendiri: SSID **FITALIS**, password `fitalis123`.

@@ -22,15 +22,18 @@
 // WiFi
 // ---------------------------------------------------------------------------
 // Two modes:
-//   WIFI_MODE_AP      -> ESP32 becomes its own access point (no router needed).
-//                        Dashboard at http://192.168.4.1
-//                        BUT: no internet => NTP time sync unavailable.
-//   WIFI_MODE_STATION -> ESP32 joins your home WiFi/router.
-//                        Gets NTP time. Dashboard at the IP printed on Serial.
-#define WIFI_MODE_AP          0
-#define WIFI_MODE_STATION     1
+//   MODE_AP      -> ESP32 becomes its own access point (no router needed).
+//                   Dashboard at http://192.168.4.1
+//                   BUT: no internet => NTP time sync unavailable.
+//   MODE_STATION -> ESP32 joins your home WiFi/router.
+//                   Gets NTP time. Dashboard at the IP printed on Serial.
+//
+// NOTE: the names deliberately avoid WIFI_MODE_* — those collide with
+// macros inside the ESP32 Arduino core (WiFiType.h).
+#define MODE_AP          0
+#define MODE_STATION     1
 
-#define WIFI_MODE             WIFI_MODE_STATION
+#define WIFI_MODE        MODE_STATION
 
 #define AP_SSID               "FITALIS"
 #define AP_PASSWORD           "fitalis123"     // min 8 chars; "" for open AP
