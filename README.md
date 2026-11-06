@@ -17,19 +17,38 @@ setting jadwal lewat HP — **tanpa internet, tanpa laptop, tanpa server**.
 
 ```
 fitalis-firmware/
+├── FITALIS/
+│   └── FITALIS.ino    <-- SATU FILE buat Arduino IDE (semua kode digabung)
 ├── include/
-│   ├── config.h      <-- SEMUA setelan ada di sini (pin, WiFi, jadwal)
+│   ├── config.h       <-- SEMUA setelan ada di sini (pin, WiFi, jadwal)
 │   ├── schedule.h
 │   ├── reminder.h
 │   └── web.h
 ├── src/
-│   ├── main.cpp      <-- setup() + loop()
-│   ├── schedule.cpp  <-- simpan/baca jadwal dari flash
-│   ├── reminder.cpp  <-- mesin alarm + jam
-│   └── web.cpp       <-- web server + halaman dashboard
-├── platformio.ini    (opsional, buat CI)
+│   ├── main.cpp       <-- setup() + loop()
+│   ├── schedule.cpp   <-- simpan/baca jadwal dari flash
+│   ├── reminder.cpp   <-- mesin alarm + jam
+│   └── web.cpp        <-- web server + halaman dashboard
+├── build_ino.py       <-- generate ulang FITALIS.ino dari src/ + include/
+├── platformio.ini
 └── .github/workflows/firmware.yml
 ```
+
+`FITALIS.ino` di-generate otomatis dari `src/` + `include/`. Kalau lu ubah
+kode di `src/`, jalankan `python3 build_ino.py` buat bikin ulang `.ino`-nya.
+
+## Status build (terverifikasi)
+
+Compile terakhir di GitHub Actions runner, ESP32 Dev Module, Arduino core:
+
+```
+RAM:   15.1%  (49,436 / 327,680 bytes)
+Flash: 82.2%  (1,077,481 / 1,310,720 bytes)
+firmware.bin: 1.1 MB
+Build time: 91.76 s
+Status: SUCCESS
+```
+
 
 ## Rangkaian hardware
 
@@ -43,27 +62,25 @@ Tombol pakai `INPUT_PULLUP`, jadi tidak perlu resistor tambahan.
 
 ## Cara upload ke ESP32
 
-1. Buka **Arduino IDE 2.x**
-2. Install board ESP32: `File → Preferences → Additional Boards Manager URLs`
+### Opsi A — Arduino IDE (paling gampang)
+
+Buka file **`FITALIS/FITALIS.ino`** di Arduino IDE. Semua kode sudah digabung
+jadi satu file, jadi tidak perlu copy-paste manual.
+
+1. Install board ESP32: `File → Preferences → Additional Boards Manager URLs`
    → `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-3. `Tools → Board → Boards Manager` → cari **esp32** → install
-4. `Tools → Board → ESP32 Arduino → ESP32 Dev Module`
-5. Copy folder `src/` + `include/` ke sketch. Struktur yang Arduino IDE baca:
-
-   ```
-   FITALIS/
-   ├── FITALIS.ino      <-- isi = salinan src/main.cpp (ubah ekstensi ke .ino)
-   ├── config.h
-   ├── schedule.h  schedule.cpp
-   ├── reminder.h  reminder.cpp
-   └── web.h       web.cpp
-   ```
-
-   Semua file `.h` dan `.cpp` taruh sejajar di folder sketch yang sama,
-   ganti `#include "config.h"` biarkan apa adanya (Arduino IDE mencari
-   di folder sketch secara otomatis).
+2. `Tools → Board → Boards Manager` → cari **esp32** → install
+3. Buka `FITALIS/FITALIS.ino`
+4. Edit **BAGIAN 1 — KONFIGURASI**: isi `STA_SSID` dan `STA_PASSWORD`
+5. `Tools → Board → ESP32 Arduino → ESP32 Dev Module`
 6. Pilih port, klik **Upload**
 7. Buka **Serial Monitor** di **115200 baud**
+
+### Opsi B — PlatformIO (kalau sudah pakai VS Code)
+
+Buka folder project ini di VS Code dengan extension PlatformIO, lalu klik
+**Upload**. Pakai `include/config.h` (bukan file `.ino`).
+
 
 ## Cara pakai
 
